@@ -76,6 +76,9 @@
   padding-left: 0px !important;
   padding-right: 0px !important;
 }
+.wm-popup-content{
+  padding:17px;
+}
 
 /*Info Icon*/
 .wm-info-icon{
