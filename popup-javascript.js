@@ -6,7 +6,7 @@
 (function(){
   /*Collect All Possible Popup Init Buttons*/
   let builtPopups = [];
-  let cssUrl = 'https://cdn.jsdelivr.net/gh/willmyethewebsiteguy/popup@2.0/popup-javascript.min.js';
+  let cssUrl = 'https://cdn.jsdelivr.net/gh/willmyethewebsiteguy/popup@2.0/popup-styles.min.css';
 
   function buildSQSPopupHTML(btn) {
     let btnInput = btn.href.split('=')[1] || btn.href.split('wmpopup-')[1]  || btn.href.split('wm-popup-')[1],
