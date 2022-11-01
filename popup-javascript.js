@@ -6,6 +6,7 @@
 (function(){
   /*Collect All Possible Popup Init Buttons*/
   let builtPopups = [];
+  let cssUrl = 'https://assets.codepen.io/3198845/WMPopupTESTING.css';
 
   function buildSQSPopupHTML(btn) {
     let btnInput = btn.href.split('=')[1] || btn.href.split('wmpopup-')[1]  || btn.href.split('wm-popup-')[1],
@@ -144,8 +145,7 @@
 
 
   function addCSS() {
-    let url = 'https://assets.codepen.io/3198845/WMPopup210816v2.0.5.css';
-    addCSSFileToHeader(url);
+    addCSSFileToHeader(cssUrl);
     function addCSSFileToHeader(url) {
       let head = document.getElementsByTagName('head')[0],
           link = document.createElement('link');
