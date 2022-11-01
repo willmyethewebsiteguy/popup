@@ -1,0 +1,101 @@
+/* =========
+  Testing Popups
+  A simple Popup Plugin for Squarespace
+  This Code is Licensed by Will-Myers.com
+========== */
+.wm-popup {
+  position:fixed;
+  top:0;
+  left:0;
+  width:100vw;
+  height:100vh;
+
+  z-index:-1;
+  opacity: 0;
+  visibility:hidden;
+  transition: opacity .3s ease,
+    visibilitiy 0s ease;
+}
+.wm-popup.popup-open {
+  z-index:9999;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .3s ease,
+    visibilitiy 0s ease .3s;
+}
+.wm-popup-background {
+  background: hsla(0,0%,0%,.4);
+  height:100%;
+  width:100%;
+  display:grid;
+  place-items:center;
+}
+.wm-popup-container {
+  position:relative;
+  background:white;
+  max-width:clamp(0px, 800px, 80vw);
+  width:100%;
+  box-shadow: 0px 0px 12px hsla(0,0%,0%,.1);
+  margin:17px;
+}
+.wm-popup[data-popup-id^="#"] .wm-popup-container {
+  padding:clamp(17px, 4vw, 34px);
+  box-sizing:border-box;
+}
+.wm-popup-content {
+  max-height:80vh;
+  overflow:scroll;
+}
+
+/*Close Button*/ 
+.wm-popup-close-btn{
+  z-index:1;
+  position: absolute;
+  top: -1rem;
+  right: -1rem;
+  height: 2rem;
+  width: 2rem;
+  display: grid;
+  place-content: center;
+  border-radius: 50%;
+  border: 0;
+  color: white;
+  background: black;
+  padding:unset;
+}
+.popup-background{
+  height:100%;
+  width:100%;
+}
+
+/*Remove padding around single block*/
+.wm-popup-content > .sqs-block {
+  padding: 0px !important;
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+}
+
+/*Info Icon*/
+.wm-info-icon{
+  position:relative;
+  height:100%;
+}
+.wm-info-icon:after{
+  content:'\24D8';
+  display:inline-grid;
+  place-items: center;
+  position:absolute;
+  top:0;
+  left:0;
+}
+p .wm-info-icon:after{
+  font-size:.8rem; 
+}
+h1 .wm-info-icon:after, h2 .wm-info-icon:after{
+  font-size: 1.2rem; 
+}
+h3 .wm-info-icon:after, h4 .wm-info-icon:after{
+  font-size: 1rem; 
+}
