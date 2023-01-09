@@ -3,7 +3,7 @@
   A simple Popup Plugin for Squarespace
   This Code is Licensed by Will-Myers.com
 ========== */
-.wm-popup {
+.wm-popup-container {
   position:fixed;
   top:0;
   left:0;
@@ -16,7 +16,7 @@
   transition: opacity .3s ease,
     visibilitiy 0s ease;
 }
-.wm-popup.popup-open {
+.wm-popup-container.open {
   z-index:9999;
   opacity: 1;
   visibility: visible;
@@ -30,15 +30,15 @@
   display:grid;
   place-items:center;
 }
-.wm-popup-container {
+.wm-popup-wrapper {
   position:relative;
   background:white;
-  max-width:clamp(0px, 800px, 80vw);
+  max-width:clamp(0px, 900px, 90vw);
   width:100%;
   box-shadow: 0px 0px 12px hsla(0,0%,0%,.1);
   margin:17px;
 }
-.wm-popup[data-popup-id^="#"] .wm-popup-container {
+.wm-popup-container[data-popup-id^="#"] .wm-popup-wrapper {
   padding:clamp(17px, 4vw, 34px);
   box-sizing:border-box;
 }
@@ -79,6 +79,10 @@
 .wm-popup-content{
   padding:17px;
 }
+.wm-popup-content .fluid-engine{
+  grid-template-columns: minmax(17px, 1fr) repeat(24, minmax(0, var(--cell-max-width))) minmax(17px, 1fr);
+}
+
 
 /*Info Icon*/
 .wm-info-icon{
