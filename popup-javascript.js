@@ -49,7 +49,7 @@
       if (cleanedValue == 'false') value = false;
 
       return value;
-    },
+    }
   };
 
   let WMPopup = (function () {
