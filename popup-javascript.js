@@ -4,6 +4,7 @@
   This Code is Licensed by Will-Myers.com
 ========== */
 (function () {
+  const builtPopups = [];
   const utils = {
     emitEvent: function (type, detail = {}, elem = document) {
       if (!type) return;
@@ -48,7 +49,7 @@
       if (cleanedValue == 'false') value = false;
 
       return value;
-    }
+    },
   };
 
   let WMPopup = (function () {
@@ -121,11 +122,11 @@
     function setAttribute(instance){
       let btn = instance.elements.btn,
           href = btn.href;
-      
+
       if (!href) href = btn.data.wmPopup;
-      
+
       let target = href.split('popup=')[1];
-      
+
       if (target.includes('=')) target.replace("=", '');
 
       instance.settings.urlData = target;
@@ -138,8 +139,11 @@
           url = instance.settings.url,
           selectorID = instance.settings.selectorID,
           popupEl = document.querySelector(`[data-wm-popup-content="${str}"]`);
+
+      if (builtPopups.includes(str)) return;
+      builtPopups.push(str);
       
-      if (popupEl) return popupEl;
+      //if (popupEl) return popupEl;
       
       let html = await utils.getHTML(url, selectorID);
       let popupHTML = `
@@ -176,6 +180,7 @@
 
     function Constructor(btn) {
       if (btn.popupEl) return;
+      
       let section = btn.closest('.page-section');
       
       let instance = this;
@@ -225,7 +230,7 @@
           return this.section.querySelector('.section-border video');
         }
       };
-      
+            
       setAttribute(instance);
       instance.popupEl = buildHTML(instance);
       addClickEvent(instance);
