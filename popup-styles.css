@@ -44,7 +44,7 @@
 }
 .wm-popup-content {
   max-height:80vh;
-  overflow:scroll;
+  overflow-y:scroll;
 }
 
 /*Close Button*/ 
