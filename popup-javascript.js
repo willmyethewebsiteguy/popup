@@ -3,269 +3,313 @@
   A simple Popup Plugin for Squarespace
   This Code is Licensed by Will-Myers.com
 ========== */
-(function () {
-  const builtPopups = [];
-  const utils = {
-    emitEvent: function (type, detail = {}, elem = document) {
-      if (!type) return;
-      let event = new CustomEvent(type, {
-        bubbles: true,
-        cancelable: true,
-        detail: detail,
-      });
-      return elem.dispatchEvent(event);
-    },
-    async getHTML(url, selector = null) {
-      try {
-        let response = await fetch(`${url}`);
 
-        // If the call failed, throw an error
-        if (!response.ok) {
-          throw `Something went wrong with ${url}`;
-        }
 
-        let data = await response.text(),
-            frag = document.createRange().createContextualFragment(data),
-            section = frag.querySelector('#sections');
-
-        if (selector) section = frag.querySelector(selector);
-
-        return section;
-
-      } catch (error) {
-        console.error(error);
-      }
-    },
-    getPropertyValue: function (el, prop) {
-      let propValue = window.getComputedStyle(el).getPropertyValue(prop),
-          cleanedValue = propValue.trim().toLowerCase(),
-          value = cleanedValue;
-
-      /*If First & Last Chars are Quotes, Remove*/
-      if (cleanedValue.charAt(0).includes('"') || cleanedValue.charAt(0).includes("'")) value = value.substring(1);
-      if (cleanedValue.charAt(cleanedValue.length-1).includes('"') || cleanedValue.charAt(cleanedValue.length-1).includes("'")) value = value.slice(0, -1);;
-
-      if (cleanedValue == 'true') value = true;
-      if (cleanedValue == 'false') value = false;
-
-      return value;
-    }
-  };
-
-  let WMPopup = (function () {
-    let closeEventListenerAdded = false;
+const wmPopup = (function() {
+  
+  let popups = {};
+  let initialized = false;
+  let isOpen = false;
+  let activeId = null;
+  let defaults = {
+    preload: true,
+    autoplayVideos: true,
+    entranceAnimation: true,
+    baseInit: ['#wm-popup=']
+  }
+  let userParams = window.wmPopupSettings || {};
+  let options = {};
+  let baseSelector = '#sections'
+  let elements = {
+    body: document.body,
+//    page: document.querySelector('#footer-sections .sqs-block:last-child') || document.querySelector('body'),
     
-    function addClickEvent(instance) {
-      let btn = instance.elements.btn;
-      
-      function handleEvent(e){
-        e.preventDefault();
-        e.stopPropagation();
-        instance.open();
-      }
+    popupParent: document.querySelector('#sections > .page-section:last-child'), //Container that the popup goes into, needs to be a page-section so SS code will run
+    container: null,
+    popupBackground: null,
+    closeBtn: null,
+    popupContent: null
+  }
+  let activeContainer;
+  let scriptsToLoad = [];
 
-      btn.addEventListener('click', handleEvent, true);
-    }
-    
-    function addCloseEventListener(instance){
-      if (closeEventListenerAdded) return;
+  /*Utilities*/
+  function deepMerge (...objs) {
+  	function getType (obj) {
+  		return Object.prototype.toString.call(obj).slice(8, -1).toLowerCase();
+  	}
 
-      function handleEvent(e){
-        if (!e.target.hasAttribute('data-popup-close')) return;
-        e.preventDefault();
-        e.stopPropagation();
-        instance.close();
-      }
-      
-      document.addEventListener('click', handleEvent, true);
-      closeEventListenerAdded = true;
-    }
-    
-    function autoplayVideos(instance) {
-      let video = instance.elements.container.querySelector('video'),
-          sectionBackgroundVideo = instance.elements.sectionBackgroundVideo;
+  	function mergeObj (clone, obj) {
+  		for (let [key, value] of Object.entries(obj)) {
+  			let type = getType(value);
+  			if (clone[key] !== undefined && getType(clone[key]) === type && ['array', 'object'].includes(type)) {
+  				clone[key] = deepMerge(clone[key], value);
+  			} else {
+  				clone[key] = structuredClone(value);
+  			}
+  		}
+  	}
+  
+  	let clone = structuredClone(objs.shift());
+  
+  	for (let obj of objs) {
+  		let type = getType(obj);
+  		if (getType(clone) !== type) {
+  			clone = structuredClone(obj);
+  			continue;
+  		}
+  		if (type === 'array') {
+  			clone = [...clone, ...structuredClone(obj)];
+  		} else if (type === 'object') {
+  			mergeObj(clone, obj);
+  		} else {
+  			clone = obj;
+  		}
+  	}
+  	return clone;
+  }
 
-      video.play();
-      if (sectionBackgroundVideo) sectionBackgroundVideo.pause();
-    }
-    
-    function stopAllVideos(instance) {
-      let videos = instance.elements.container.querySelectorAll('video'),
-          sectionBackgroundVideo = instance.elements.sectionBackgroundVideo;
-      
-      for (let video of videos){
-        video.pause();
-      }
-      if (sectionBackgroundVideo) sectionBackgroundVideo.play();
-    }
-    
-    function addLoadEventListener(instance){
-      let blocks = instance.elements.blocks,
-          str = instance.settings.str;
-
-      Squarespace.initializeLayoutBlocks(Y, Y.one(`[data-wm-popup-content="${str}"]`))
-
-      for (let block of blocks) {
-        let cl = block.classList;
-        let id = block.id;
-        if (cl.contains('sqs-block-video')) {
-          Squarespace?.initializeNativeVideo(Y, Y.one(`#${id}`));
-        }
-      }
-    }
-    
-    function changeHref(instance) {
-      if (!instance.elements.btn.href) return;
-      instance.elements.btn.href = '#'
-    }
-    
-    function setAttribute(instance){
-      let btn = instance.elements.btn,
-          href = btn.href;
-
-      if (!href) href = btn.data.wmPopup;
-
-      let target = href.split('popup=')[1];
-
-      if (target.includes('=')) target.replace("=", '');
-
-      instance.settings.urlData = target;
-      btn.dataset.wmPopup = target;
-      btn.href = '#';
-    }
-
-    async function buildHTML(instance) {
-      let str = instance.settings.str,
-          url = instance.settings.url,
-          selectorID = instance.settings.selectorID,
-          popupEl = document.querySelector(`[data-wm-popup-content="${str}"]`);
-
-      if (builtPopups.includes(str)) return;
-      builtPopups.push(str);
-      
-      //if (popupEl) return popupEl;
-      
-      let html = await utils.getHTML(url, selectorID);
-      let popupHTML = `
-      <div class="wm-popup-container" data-wm-popup-content="${str}" aria-hidden="true">
-        <div tabindex="-1" data-popup-close class="wm-popup-background">
-          <div role="dialog" aria-modal="true" class="wm-popup-wrapper">
-            <button aria-label="Close popup" data-popup-close class="wm-popup-close-btn">×</button>
-            <div class="wm-popup-content">
-            </div>
-          </div>
+  /*Private Functions*/
+  function buildContainer(){
+    let html = `<div class="wm-popup-container" aria-hidden="true">
+        <div tabindex="-1" data-popup-close class="wm-popup-background"></div>
+        <div role="dialog" aria-modal="true" class="wm-popup-wrapper">
+          <button aria-label="Close popup" data-popup-close class="wm-popup-close-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div class="wm-popup-content"></div>
         </div>
-      </div>
-      `; 
-      
-      document.querySelector('#siteWrapper')
-        .insertAdjacentHTML('beforeend', popupHTML);
-      let contentContainer = instance.elements.contentContiner;
-      contentContainer.append(html);
-      popupEl = instance.elements.container;
-      
-      //If only contains video Block, pull video out and remove everything else;
-      let popupVideo = popupEl.querySelector('.sqs-block-video');
-      let onlyOneBlock = popupEl.querySelectorAll('.sqs-block').length == 1 ? true : false;
-      if (popupVideo && onlyOneBlock) {
-        contentContainer.innerHTML = '';
-        contentContainer.append(popupVideo);
-        popupEl.classList.add('popup-video');
-        instance.settings.onlyVideo = true;
-      }
-
-      addLoadEventListener(instance);      
-      return popupEl;
-    }
-
-    function Constructor(btn) {
-      if (btn.popupEl) return;
-      
-      let section = btn.closest('.page-section');
-      
-      let instance = this;
-      instance.isOpen = false;
-      instance.settings = {
-        urlData: '',
-        get hasAutoplay() {
-          return this.urlData.includes('?autoplay')
-        },
-        get str() {
-          return btn.dataset.wmPopup;
-        },
-        get url() {
-          let target = this.str;
-          if (target.includes('#')) target = target.split('#')[0];
-          return target;
-        },
-        get selectorID() {
-          let target = this.str;
-          if (target.includes('?')) target = target.split('?')[0];
-          if (target.includes('#')) {
-            target = target.split('#')[1]
-            return '#' + target;
-          } else {
-            return null;
-          }
-        },
-        get autoplayVideo() {
-          return utils.getPropertyValue(instance.elements.container, '--autoplay-video')
-        },
-        onlyVideo: false
-      };
-      instance.elements = {
-        btn: btn,
-        section: section,
-        get container() {
-          let el = document.querySelector(`[data-wm-popup-content="${instance.settings.urlData}"]`);
-          return el
-        },
-        get contentContiner() {
-          return this.container.querySelector(`.wm-popup-content`)
-        },
-        get blocks() {
-          return this.container.querySelectorAll(`.sqs-block`)
-        },
-        get sectionBackgroundVideo() {
-          return this.section.querySelector('.section-border video');
-        }
-      };
-            
-      setAttribute(instance);
-      instance.popupEl = buildHTML(instance);
-      addClickEvent(instance);
-      addCloseEventListener(instance);
-    }
+      </div>`;
     
-    Constructor.prototype.open = function() {
-      this.elements.container.classList.add('open')
-      document.body.classList.add('wm-popup-open');
-      
-      if (this.settings.hasAutoplay) {
-        autoplayVideos(this);
+    elements.popupParent.insertAdjacentHTML('beforeend', html);
+    elements.container = document.querySelector('.wm-popup-container');
+    elements.popupBackground = document.querySelector('.wm-popup-background');
+    elements.closeBtn = document.querySelector('.wm-popup-close-btn');
+    elements.popupContent = document.querySelector('.wm-popup-content');
+  }
+  function setLinks() {
+    let links = document.querySelectorAll('[href*="#wm-popup"], [href*="#wmpopup"]');
+    let root = window.location.origin;
+    links.forEach(el => {
+      let val = el.getAttribute('href').split('=')[1];
+      let url  = new URL(root + val);
+      let path = url.pathname;
+      let selector = url.hash;
+      let autoplay = url.searchParams.get('autoplay');
+      if (autoplay !== null || options.autoplayVideos) {
+        autoplay = true;
+      } else {
+        autoplay = false;
       }
-      
-      if (this.settings.onlyVideo && this.settings.autoplayVideo) {
-        this.elements.container.querySelector('video')?.play();
+
+      el.dataset.wmPopup = path;
+
+      let selectors = [];
+      if (popups[path]) {
+        selectors = popups[path].selectors;
       }
-    }
+      if (selector) {
+        if (!selectors.includes(selector)) selectors.push(selector);
+        el.dataset.wmPopupSelector = selector;
+      } 
 
-    Constructor.prototype.close = function() {
-      let openPopup = document.querySelector('.wm-popup-container.open')
-      openPopup.classList.remove('open');
-      document.body.classList.remove('wm-popup-open');
-      stopAllVideos(this);
-    }
+      if (!popups[path]) {
+        popups[path] = {
+          path: path,
+          selectors: selectors,
+        };
+      }
 
-    return Constructor;
-  }());
-
-  let initPopups = () => {
-    let popupBtns = document.querySelectorAll('a[href*="#wmpopup="], a[href*="#wm-popup="], a[href*="/wmpopup="], a[href*="/wm-popup="], [data-wm-popup]');
-    for (let btn of popupBtns) {
-      new WMPopup(btn);
+      if (window.self !== window.top) {
+        const clone = el.cloneNode(true);
+        el.parentNode.replaceChild(clone, el);
+      } else {
+        el.href = '#'
+      }
+    });
+  }
+  function returnElement(id) {
+    const element = popups[id].movedEl;
+    const parent = popups[id].returnParent;
+    const nextSibling = popups[id].nextSibling;
+  
+    // Move the element back to its original position
+    if (nextSibling) {
+      parent.insertBefore(element, nextSibling);
+    } else {
+      parent.appendChild(element);
     }
   }
-  initPopups();
-  window.wmInitPopups = initPopups;
-}());
+  async function fetchHTML(url, selector = '#sections') {
+    try {
+      const response = await fetch(url);
+      const html = await response.text();
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const selectedContent = doc.querySelector(selector).innerHTML;
+      return selectedContent;
+    } catch (error) {
+      console.error('Error fetching HTML:', error);
+      return null;
+    }
+  }
+  async function buildAllPopups() {
+    const promises = [];
+  
+    for (let id in popups) {
+      let popup = popups[id];
+      promises.push(buildPopup(id));
+    }
+  
+    try {
+      await Promise.all(promises);
+      // All fetch requests have completed, continue with the next function here
+      checkForSquarespaceScripts();
+      loadScripts();
+      initializeScripts();
+    } catch (error) {
+      console.error(error);
+    }
+  } 
+  async function buildPopup(id) {
+    let popup = popups[id];
+    if (popup.init) return;
+    popup.init = true;
+    try {
+      const content = await fetchHTML(popup.path);
+      elements.popupContent.insertAdjacentHTML('beforeend', `<div data-wm-popup="${id}">${content}</div>`);
+      let container = elements.popupContent.querySelector(`[data-wm-popup="${id}"]`);
+      let contentWrapper = container.querySelector('.content-wrapper');
+      contentWrapper.insertAdjacentHTML('beforeend','<div class="single-block-container"></div>');
+      popup.container = container;
+      popup.singleBlockContainer = container.querySelector('.single-block-container');
+      
+    } catch (error) {
+      console.error(error);
+    }
+  }
+  function checkForSquarespaceScripts(){
+    /*Like Background Videos*/
+    let hasBkgVideos = elements.container.querySelectorAll('.section-background .sqs-video-background-native').length;
+    let hasListSection = elements.container.querySelectorAll('.page-section.user-items-list-section');
+    let hasGallerySection = elements.container.querySelectorAll('.page-section.gallery-section');
+    
+    /*If Background Video or Gallery Section*/
+    if (hasBkgVideos || hasListSection || hasGallerySection) {
+
+      let sqsLoaderScript = document.querySelector('body > [src*="https://static1.squarespace.com/static/vta"]');
+      scriptsToLoad.push(sqsLoaderScript)
+    }
+  }
+  function loadScripts() {
+    if (!scriptsToLoad.length) return;
+    let hasLoaded = [];
+    for (let el of scriptsToLoad){
+      if (hasLoaded.includes(el.src) || hasLoaded.includes(el.innerHTML)) continue;
+      const script = document.createElement('script');
+      script.src = el.src;
+      script.async = el.async;
+
+      if (el.innerHTML) {
+        eval(el.innerHTML);
+        hasLoaded.push(el.innerHTML)
+      } else {
+        document.body.appendChild(script);
+        hasLoaded.push(el.src)
+      }
+    }
+  }
+  function initializeScripts() {
+    window.Squarespace?.initializeLayoutBlocks(Y, Y.one(elements.container));
+    window.Squarespace?.initializeNativeVideo(Y, Y.one(elements.container));
+  }
+  function loadSiteBundle(){
+    let siteBundle = document.querySelector('body > [src*="https://static1.squarespace.com/static/vta"]');
+    const script = document.createElement('script');
+    script.src = siteBundle.src;
+    script.async = siteBundle.async;
+    document.body.appendChild(script);
+    console.log('loaded')
+  }
+
+  /*Public Functions*/
+  function init() {
+    options = deepMerge(defaults, userParams);
+    setLinks();
+    
+    if (initialized) return;
+    
+    initialized = true;
+    buildContainer();
+    if (options.preload) {
+      buildAllPopups();
+    }
+
+    /*Open Event*/
+    elements.body.addEventListener('click', function(e){
+      if (!e.target.closest('[data-wm-popup]')) return;
+      e.preventDefault()
+      e.stopPropagation();
+      let trigger = e.target.closest('[data-wm-popup]')
+      let id = trigger.dataset.wmPopup;
+      let target = trigger.dataset.wmPopupSelector;
+      let autoplay = trigger.dataset.autoPlay || options.autoplayVideo;
+
+      open(id, target, autoplay)
+    });
+
+    /*Close Event*/
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('[data-popup-close]')) return;
+      close()
+    });
+  }
+  function render() {
+    setLinks();
+  }
+  async function open(id, target, autoplay = false) {
+    if (!popups[id] || !popups[id].init) {
+      await buildPopup(id)
+      initializeScripts();
+      loadSiteBundle();
+    }
+    isOpen = true;
+    activeId = id;
+    activeContainer = popups[id].container;
+    if (target) {
+      let targetEl = activeContainer.querySelector(target);
+      popups[id].returnParent = targetEl.parentNode;
+      popups[id].nextSibling = targetEl.nextSibling;
+      popups[id].movedEl = targetEl;
+      popups[id].singleBlockContainer.append(targetEl);
+      activeContainer.classList.add('single-block-only');
+    }
+    elements.container.classList.add('open');
+    activeContainer.classList.add('open');
+  }
+  function close() {
+    isOpen = false;
+    elements.container.classList.remove('open');
+    activeContainer.classList.remove('open');
+    if (activeContainer.matches('.single-block-only')) {
+      returnElement(activeId)
+      console.log(activeId)
+      activeContainer.classList.remove('single-block-only');
+    }
+    activeId = null;
+  }
+
+  return {
+    open: open, // Public method
+    close: close, // Public method
+    render: render,
+    init: init,
+    popups: popups
+  }; 
+})();
+
+/*Init*/
+if (document.querySelector('[href*="#wm-popup"], [href*="#wmpopup"]')) {
+  wmPopup.init();
+}
