@@ -1,53 +1,78 @@
 /* =========
   Testing Popups
-  A simple Popup Plugin for Squarespace
+  A Simple Popup Plugin for Squarespace
   This Code is Licensed by Will-Myers.com
 ========== */
+/*
+Default Custom Props
 .wm-popup-container {
-  position:fixed;
-  top:0;
-  left:0;
-  width:100vw;
-  height:100vh;
+  --max-width: 900px;
+  --max-height: 900px;
+  --border-radius: 5px;
+  --border: 0px dashed currentColor;
+  --blur: 0px;
+  --animation: slideup;
+  --animation-duration: 0.3s;
+  --background-opacity: 0.6;
+  
+  --close-color: white;
+  --close-background: purple;
+  --close-size: 1rem;
+}*/
 
-  z-index:-1;
+.wm-popup-container {
+  position: fixed;
+  display: grid;
+  place-items: center;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+
+  z-index: -1;
+  transform: translateY(10px);
   opacity: 0;
-  visibility:hidden;
+  visibility: hidden;
   transition: opacity .3s ease,
     visibilitiy 0s ease;
 }
-.wm-popup-container.open {
-  z-index:9999;
-  opacity: 1;
-  visibility: visible;
-  transition: opacity .3s ease,
-    visibilitiy 0s ease .3s;
+.wm-popup-container > * {
+  grid-area: 1 / 1;
 }
 .wm-popup-background {
-  background: hsla(0,0%,0%,.4);
-  height:100%;
-  width:100%;
-  display:grid;
+  height: 100%;
+  width: 100%;
+  display: grid;
+  position: absolute;
+  top:0;
   place-items:center;
+  transition: background var(--animation-duration, 0.3s), 
+    backdrop-filter var(--animation-duration, 0.3s);
+  backdrop-filter: blur(var(--blur, 0px)) opacity(0);
 }
 .wm-popup-wrapper {
   position:relative;
-  background:white;
-  max-width:clamp(0px, 900px, 90vw);
+  max-width: clamp(0px, var(--max-width, var(--sqs-site-max-width, 900px)), 90vw);
   width:100%;
   box-shadow: 0px 0px 12px hsla(0,0%,0%,.1);
-  margin:17px;
-}
-.wm-popup-container[data-popup-id^="#"] .wm-popup-wrapper {
-  padding:clamp(17px, 4vw, 34px);
   box-sizing:border-box;
 }
 .wm-popup-content {
-  max-height:80vh;
-  overflow-y:scroll;
+  max-height:clamp(0px, var(--max-height, 900px), 90vh);
+  overflow-y: auto;
+  border-radius: var(--border-radius, 5px);
+  border:var(--border, initial);
+}
+.wm-popup-content > * {
+  display:none;
+}
+.single-block-container {
+  display:none;
+  width:100%;
+  padding:17px;
 }
 
-/*Close Button*/ 
+/*Close Button*/
 .wm-popup-close-btn{
   z-index:1;
   position: absolute;
@@ -59,13 +84,63 @@
   place-content: center;
   border-radius: 50%;
   border: 0;
-  color: white;
-  background: black;
-  padding:unset;
+  color: var(--close-color, var(--primaryButtonTextColor, white));
+  background: var(--close-background, var(--primaryButtonBackgroundColor, black));
+  padding: 8px;
+  line-height: 0;
 }
-.popup-background{
-  height:100%;
-  width:100%;
+.wm-popup-close-btn svg{
+  width: 100%;
+  height: 100%;
+}
+
+/*Open*/
+.wm-popup-container.open {
+  z-index:9999;
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0px);
+  transition: opacity .3s ease,
+    visibilitiy 0s ease .3s,
+    transform .3s ease;
+}
+.wm-popup-container.open .wm-popup-background {
+  background: hsla(0, 0%, 0%, var(--background-opacity, 0.6));
+  backdrop-filter: blur(var(--blur, 0px)) opacity(1);
+}
+.wm-popup-container.open .wm-popup-content > .open {
+  display: block;
+}
+
+
+/*Has Single Block*/
+.single-block-only.open .single-block-container {
+  display:block;
+}
+.wm-popup-container .single-block-only.open .content-wrapper > .content {
+  display:none;
+}
+.single-block-only .content-wrapper {
+  padding:0 !important;
+}
+.single-block-only .page-section {
+  min-height:0vh !important;
+}
+
+/*Sections*/
+.wm-popup-container .page-section{
+  padding-top: 0px !important;
+}
+
+/*Video Sections*/
+.single-block-container .sqs-block-video{
+  padding:0px;
+}
+.single-block-container .embed-block-wrapper{
+  padding-bottom: 0px !important;
+}
+.single-block-container .video-player .video-player__icons{
+  top:0;
 }
 
 /*Remove padding around single block*/
@@ -76,33 +151,41 @@
   padding-left: 0px !important;
   padding-right: 0px !important;
 }
-.wm-popup-content{
-  padding:17px;
-}
-.wm-popup-content .fluid-engine{
-  grid-template-columns: minmax(17px, 1fr) repeat(24, minmax(0, var(--cell-max-width))) minmax(17px, 1fr);
+@media(min-width: 767px) {
+  .wm-popup-content .fluid-engine{
+    grid-template-columns: minmax(17px, 1fr) repeat(24, minmax(0, var(--cell-max-width))) minmax(17px, 1fr);
+  }
 }
 
 
 /*Info Icon*/
-.wm-info-icon{
+a[data-wm-popup]{
   position:relative;
-  height:100%;
 }
-.wm-info-icon:after{
-  content:'\24D8';
-  display:inline-grid;
-  place-items: center;
+.wm-info-icon{
   position:absolute;
+  height: .8rem; 
+  width: .8rem; 
   top:0;
   left:0;
 }
-p .wm-info-icon:after{
-  font-size:.8rem; 
+.wm-info-icon svg{
+  position:absolute;
+  width:100%;
+  height:100%;
 }
-h1 .wm-info-icon:after, h2 .wm-info-icon:after{
-  font-size: 1.2rem; 
+
+p .wm-info-icon{
+  height: .8rem; 
+  width: .8rem; 
 }
-h3 .wm-info-icon:after, h4 .wm-info-icon:after{
-  font-size: 1rem; 
+h1 .wm-info-icon, 
+h2 .wm-info-icon{
+  height: 1.5rem; 
+  width: 1.5rem; 
+}
+h3 .wm-info-icon, 
+h4 .wm-info-icon{
+  height: 1.2rem; 
+  width: 1.2rem; 
 }
