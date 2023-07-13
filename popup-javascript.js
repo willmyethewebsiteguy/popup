@@ -1,5 +1,5 @@
 /* =========
-  Testing Popups
+  Popup Component
   A simple Popup Plugin for Squarespace
   This Code is Licensed by Will-Myers.com
 ========== */
@@ -23,6 +23,7 @@ const wmPopup = (function() {
   let elements = {
     body: document.body,
 //    page: document.querySelector('#footer-sections .sqs-block:last-child') || document.querySelector('body'),
+    siteWrapper: document.querySelector('#siteWrapper'),
     
     popupParent: document.querySelector('#sections > .page-section:last-child'), //Container that the popup goes into, needs to be a page-section so SS code will run
     container: null,
@@ -184,7 +185,6 @@ const wmPopup = (function() {
       contentWrapper.insertAdjacentHTML('beforeend','<div class="single-block-container"></div>');
       popup.container = container;
       popup.singleBlockContainer = container.querySelector('.single-block-container');
-      
     } catch (error) {
       console.error(error);
     }
@@ -224,13 +224,20 @@ const wmPopup = (function() {
     window.Squarespace?.initializeLayoutBlocks(Y, Y.one(elements.container));
     window.Squarespace?.initializeNativeVideo(Y, Y.one(elements.container));
   }
-  function loadSiteBundle(){
-    let siteBundle = document.querySelector('body > [src*="https://static1.squarespace.com/static/vta"]');
+  async function loadSiteBundle() {
+    const siteBundle = document.querySelector('body > [src*="https://static1.squarespace.com/static/vta"]');
     const script = document.createElement('script');
     script.src = siteBundle.src;
     script.async = siteBundle.async;
+  
+    const scriptLoaded = new Promise((resolve, reject) => {
+      script.addEventListener('load', resolve);
+      script.addEventListener('error', reject);
+    });
+
     document.body.appendChild(script);
-    console.log('loaded')
+
+    await scriptLoaded;
   }
 
   /*Public Functions*/
@@ -248,7 +255,7 @@ const wmPopup = (function() {
 
     /*Open Event*/
     elements.body.addEventListener('click', function(e){
-      if (!e.target.closest('[data-wm-popup]')) return;
+      if (!e.target.closest('[data-wm-popup]:not(.open)')) return;
       e.preventDefault()
       e.stopPropagation();
       let trigger = e.target.closest('[data-wm-popup]')
@@ -270,9 +277,9 @@ const wmPopup = (function() {
   }
   async function open(id, target, autoplay = false) {
     if (!popups[id] || !popups[id].init) {
-      await buildPopup(id)
+      await buildPopup(id);
       initializeScripts();
-      loadSiteBundle();
+      await loadSiteBundle();
     }
     isOpen = true;
     activeId = id;
@@ -285,6 +292,7 @@ const wmPopup = (function() {
       popups[id].singleBlockContainer.append(targetEl);
       activeContainer.classList.add('single-block-only');
     }
+    elements.siteWrapper.append(elements.container)
     elements.container.classList.add('open');
     activeContainer.classList.add('open');
   }
@@ -292,9 +300,9 @@ const wmPopup = (function() {
     isOpen = false;
     elements.container.classList.remove('open');
     activeContainer.classList.remove('open');
+    elements.popupParent.append(elements.container)
     if (activeContainer.matches('.single-block-only')) {
       returnElement(activeId)
-      console.log(activeId)
       activeContainer.classList.remove('single-block-only');
     }
     activeId = null;
