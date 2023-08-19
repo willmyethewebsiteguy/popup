@@ -1,24 +1,8 @@
 /* =========
-  Testing Popups
+  Squarespace Popups
   A Simple Popup Plugin for Squarespace
   This Code is Licensed by Will-Myers.com
 ========== */
-/*
-Default Custom Props
-.wm-popup-container {
-  --max-width: 900px;
-  --max-height: 900px;
-  --border-radius: 5px;
-  --border: 0px dashed currentColor;
-  --blur: 0px;
-  --animation: slideup;
-  --animation-duration: 0.3s;
-  --background-opacity: 0.6;
-  
-  --close-color: white;
-  --close-background: purple;
-  --close-size: 1rem;
-}*/
 
 .wm-popup-container {
   position: fixed;
@@ -30,11 +14,9 @@ Default Custom Props
   height: 100vh;
 
   z-index: -1;
-  transform: translateY(10px);
   opacity: 0;
   visibility: hidden;
-  transition: opacity .3s ease,
-    visibilitiy 0s ease;
+  transition-delay: var(--animation-duration, 0.3s);
 }
 .wm-popup-container > * {
   grid-area: 1 / 1;
@@ -46,8 +28,6 @@ Default Custom Props
   position: absolute;
   top:0;
   place-items:center;
-  transition: background var(--animation-duration, 0.3s), 
-    backdrop-filter var(--animation-duration, 0.3s);
   backdrop-filter: blur(var(--blur, 0px)) opacity(0);
 }
 .wm-popup-wrapper {
@@ -63,23 +43,18 @@ Default Custom Props
   border-radius: var(--border-radius, 5px);
   border:var(--border, initial);
 }
-.wm-popup-content > * {
-  display:none;
-}
-.single-block-container {
-  display:none;
-  width:100%;
-  padding:17px;
+.wm-popup-content > .page-section {
+  padding: var(--padding, 0px) !important;
 }
 
 /*Close Button*/
 .wm-popup-close-btn{
   z-index:1;
   position: absolute;
-  top: -1rem;
-  right: -1rem;
-  height: 2rem;
-  width: 2rem;
+  top: calc(-1 * (var(--close-size, 2rem) / 2));
+  right: calc(-1 * (var(--close-size, 2rem) / 2));
+  height: var(--close-size, 2rem);
+  width: var(--close-size, 2rem);
   display: grid;
   place-content: center;
   border-radius: 50%;
@@ -99,37 +74,82 @@ Default Custom Props
   z-index:9999;
   opacity: 1;
   visibility: visible;
-  transform: translateY(0px);
-  transition: opacity .3s ease,
-    visibilitiy 0s ease .3s,
-    transform .3s ease;
+  transition: opacity 0s ease,
+    visibilitiy 0s ease;
 }
 .wm-popup-container.open .wm-popup-background {
-  background: hsla(0, 0%, 0%, var(--background-opacity, 0.6));
+  background: hsla(var(--overlay-hsl, 0, 0%, 0%), var(--background-opacity, 0.6));
   backdrop-filter: blur(var(--blur, 0px)) opacity(1);
 }
-.wm-popup-container.open .wm-popup-content > .open {
-  display: block;
+
+
+/*Animations*/
+.wm-popup-container[data-animation="none"],
+.wm-popup-container[data-animation="none"] .wm-popup-background,
+.wm-popup-container[data-animation="none"] .wm-popup-wrapper{
+  --animation-duration: 0s !important;
+}
+
+.wm-popup-container[data-animation="slideup"] .wm-popup-background{
+  transition-duration: var(--animation-duration, 0.3s); 
+}
+.wm-popup-container[data-animation="slideup"] .wm-popup-wrapper{
+  transform: translateY(20px);
+  opacity: 0;
+  transition: transform var(--animation-duration, 0.3s) ease,
+    opacity var(--animation-duration, 0.3s) ease;
+}
+.wm-popup-container[data-animation="slideup"].open .wm-popup-wrapper{
+  transform: translateY(0px);
+  opacity: 1;
+}
+
+.wm-popup-container[data-animation="slidedown"] .wm-popup-background{
+  transition-duration: var(--animation-duration, 0.3s); 
+}
+.wm-popup-container[data-animation="slidedown"] .wm-popup-wrapper{
+  transform: translateY(-20px);
+  opacity: 0;
+  transition: transform var(--animation-duration, 0.3s) ease,
+    opacity var(--animation-duration, 0.3s) ease;
+}
+.wm-popup-container[data-animation="slidedown"].open .wm-popup-wrapper{
+  transform: translateY(0px);
+  opacity: 1;
+}
+
+.wm-popup-container[data-animation="fade"] .wm-popup-background{
+  transition-duration: var(--animation-duration, 0.3s); 
+}
+.wm-popup-container[data-animation="fade"] .wm-popup-wrapper{
+  opacity: 0;
+  transition: opacity var(--animation-duration, 0.3s) ease;
+}
+.wm-popup-container[data-animation="fade"].open .wm-popup-wrapper{
+  opacity: 1;
 }
 
 
 /*Has Single Block*/
-.single-block-only.open .single-block-container {
+.single-block-only .content-wrapper > .sqs-block {
   display:block;
+  padding: var(--single-block-padding, 0px);
+  width: 100%;
 }
-.wm-popup-container .single-block-only.open .content-wrapper > .content {
+.wm-popup-container.single-block-only .content-wrapper > .content {
   display:none;
 }
+
 .single-block-only .content-wrapper {
-  padding:0 !important;
+  padding: 0 !important;
 }
 .single-block-only .page-section {
   min-height:0vh !important;
 }
 
-/*Sections*/
-.wm-popup-container .page-section{
-  padding-top: 0px !important;
+/*Single Block Video Overrides*/
+.single-block-only .content-wrapper > .sqs-block .embed-block-wrapper {
+  padding-bottom: 0 !important;
 }
 
 /*Video Sections*/
