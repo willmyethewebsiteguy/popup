@@ -5,6 +5,23 @@
 ========== */
 
 class Popup {
+  static emitEvent (type, detail = {}, elem = document) {
+  
+  	// Make sure there's an event type
+  	if (!type) return;
+  
+  	// Create a new event
+  	let event = new CustomEvent(type, {
+  		bubbles: true,
+  		cancelable: true,
+  		detail: detail
+  	});
+  
+  	// Dispatch the event
+  	return elem.dispatchEvent(event);
+  
+  }
+  
   constructor() {
     this.popups = {};
     this.popupTriggers = [];
@@ -23,16 +40,13 @@ class Popup {
     };
 
     this.init();
+    this.ready;
   }
-
   async init() {
+    Popup.emitEvent('wmPopup:beforeInit');
     this.setSquarespaceLinks();
-    await this.buildPopups();
-    await this.loadScripts();
-    this.initializeBlocks();
-    this.rearrangePopups();
     document.body.addEventListener('click', (e) => {
-      let el = e.target.closest('[data-wm-popup]');
+      let el = e.target.closest('[data-wm-popup], a[href*="#wm-popup"], a[href*="#wmpopup"]');
       if (el) {
         e.stopPropagation();
         e.preventDefault();
@@ -44,42 +58,54 @@ class Popup {
         this.close();
       }
     });
-    this.close()
+    await this.buildPopups();
+    await this.loadScripts();
+    for (let id in this.popups) {
+      let popup = this.popups[id].popup;
+      this.initializeBlocks(popup);
+    }
+    this.rearrangePopups();
+    this.close();
+    Popup.emitEvent('wmPopup:ready');
+    this.ready = true;
   }
   
   open(el) {
     let id =  el.dataset.wmPopup;
     let popup = this.popups[id];
-    if (!popup && el.dataset.popupContent) {
+    if (!popup && !el.dataset.popupContent) return;
+    this.freezeScroll();
+    document.body.classList.add('wm-popup-open')
+    if (el.dataset.popupContent) {
       this.popups[id] = {
         content: el.dataset.popupContent,
-        singleBlock: {}
+        singleBlock: {},
+        id: id
       }
       this.buildPopup(id)
+      let siteWrapper = document.querySelector('#siteWrapper');
       popup = this.popups[id];
+      siteWrapper.append(popup.popup);
     } 
-    let popupEl = popup.popup;
-    let singleBlock = el.dataset.wmPopupBlock;
-    
-    if (singleBlock) this.placeSingleBlock(popup, singleBlock);
-    
-    /* Autoplays Videos No Matter What.
-    if (popupEl.querySelector('video') && popupEl.classList.contains('single-block-only')) {
-      popupEl.querySelector('video').play();
-    }*/
-    
-    popupEl.classList.add('open');
+    Popup.emitEvent('wmPopup:beforeOpen', popup);
     this.openPopup = this.popups[id];
     this.openPopup.trigger = el;
+    let popupEl = popup.popup;
+    let singleBlock = el.dataset.wmPopupBlock;
+    if (singleBlock) this.placeSingleBlock(popup, singleBlock);
+    popupEl.classList.add('open');
     this.setFocusOnFirstElement(popupEl)
+    this.checkIfVideoAutoplay();
     window.dispatchEvent(new Event('resize'));
+    Popup.emitEvent('wmPopup:afterOpen', popup);
   }
   close() {
     if (!this.openPopup) return;
     let popup = this.openPopup.popup;
+    Popup.emitEvent('wmPopup:beforeClose', popup);
     let popupWrapper = popup.querySelector('.wm-popup-wrapper')
     if (popup.querySelector('video')) {
-      popup.querySelector('video').pause();
+      popup.querySelectorAll('video').forEach(vid => vid.pause());
     }
 
     let handleTransitionEnd = () => {
@@ -92,10 +118,13 @@ class Popup {
       this.openPopup.trigger.focus()
       this.openPopup = null;
     }
-
+    this.resetNonNativeVideoBlocks();
     popupWrapper.removeEventListener('transitionend', handleTransitionEnd); 
     popupWrapper.addEventListener('transitionend', handleTransitionEnd);
+    document.body.classList.remove('wm-popup-open')
     popup.classList.remove('open');
+    this.unfreezeScroll();
+    Popup.emitEvent('wmPopup:afterClose', popup);
   }
 
   buildPopup(id){
@@ -138,6 +167,7 @@ class Popup {
         url: url,
         loaded: false,
         content: content,
+        id: val,
         popup: null
       };
     }
@@ -206,6 +236,7 @@ class Popup {
         url = url.split('#')[0]
         block = hash.split('#')[2] || null;
       }
+      el.href
       el.setAttribute('data-wm-popup', url);
       if (block) el.setAttribute('data-wm-popup-block', '#' + block);
     });
@@ -244,12 +275,9 @@ class Popup {
     
     await Promise.all(scriptPromises);
   }
-  initializeBlocks() {
-    for (let id in this.popups) {
-      let popup = this.popups[id].popup;
-      window.Squarespace?.initializeLayoutBlocks(Y, Y.one(popup));
-      window.Squarespace?.initializeNativeVideo(Y, Y.one(popup));
-    }
+  initializeBlocks(el) {
+    window.Squarespace?.initializeLayoutBlocks(Y, Y.one(el));
+    window.Squarespace?.initializeNativeVideo(Y, Y.one(el));
   }
   rearrangePopups(){
     let siteWrapper = document.querySelector('#siteWrapper');
@@ -305,6 +333,42 @@ class Popup {
     
       if (firstFocusableElement) firstFocusableElement.focus()
     }, 100)
+  }
+  freezeScroll() {
+    const scrollY = window.scrollY;
+    const body = document.body;
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+  };
+  unfreezeScroll() {
+    const body = document.body;
+    const scrollY = body.style.top;
+    body.style.position = '';
+    body.style.top = '';
+    window.scrollTo({
+      top: parseInt(scrollY || '0') * -1,
+      left: 0,
+      behavior: "instant",
+    })
+  };
+  checkIfVideoAutoplay() {
+    //For Native Videos
+    let nativeVideo = this.openPopup.popup.querySelector('.sqs-native-video[data-config-settings]');
+    if (nativeVideo) {
+      let video = nativeVideo.querySelector('video')
+      let settings = JSON.parse(nativeVideo.dataset.configSettings);
+      if (!settings) return;
+      let autoPlay = settings.autoPlay;
+      if (autoPlay) {
+        video.play()
+        video.currentTime = 0
+      }
+    }
+  }
+  resetNonNativeVideoBlocks() {
+    let nonNativeVideoBlock = this.openPopup.popup.querySelector('.sqs-block-video iframe')
+    if (!nonNativeVideoBlock) return;
+    this.initializeBlocks(this.openPopup.popup)
   }
 }
 
