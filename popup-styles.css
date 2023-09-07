@@ -11,7 +11,7 @@
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
 
   z-index: -1;
   opacity: 0;
@@ -38,7 +38,7 @@
   box-sizing:border-box;
 }
 .wm-popup-content {
-  max-height:clamp(0px, var(--max-height, 900px), 90vh);
+  max-height:clamp(0px, var(--max-height, 900px), 80svh);
   overflow-y: auto;
   border-radius: var(--border-radius, 5px);
   border:var(--border, initial);
