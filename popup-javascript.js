@@ -23,9 +23,11 @@ class Popup {
   }
   
   constructor() {
+    this.userSettings = window.wmPopupSettings || {};
     this.popups = {};
     this.popupTriggers = [];
     this.isOpen = false;
+    this.triggerSelector = this.userSettings.triggerSelector || 'a[href*="#wm-popup"], a[href*="#wmpopup"]';
     this.initialized;
     this.preload = true;
     this.runScripts = true;
@@ -225,21 +227,22 @@ class Popup {
     }
   }
   setSquarespaceLinks() {
-    this.squarespace.links = document.querySelectorAll('a[href*="#wm-popup"], a[href*="#wmpopup"]');
+    this.squarespace.links = document.querySelectorAll(this.triggerSelector);
     
     this.squarespace.links.forEach(el => {
       let urlData = new URL(el.href);
       let hash = urlData.hash;
-      let url = hash.split('=')[1];
+      let url = urlData.href.split('=')[1];
       let block;
       if (url.includes('#')) {
         url = url.split('#')[0]
         block = hash.split('#')[2] || null;
       }
-      el.href
       el.setAttribute('data-wm-popup', url);
       if (block) el.setAttribute('data-wm-popup-block', '#' + block);
     });
+
+    Popup.emitEvent('wmPopup:afterTriggersSet');
   }
   async loadScripts() {
     if (!this.runScripts) return;
@@ -349,7 +352,7 @@ class Popup {
       top: parseInt(scrollY || '0') * -1,
       left: 0,
       behavior: "instant",
-    })
+    });
   };
   checkIfVideoAutoplay() {
     //For Native Videos
