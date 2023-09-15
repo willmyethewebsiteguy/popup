@@ -48,7 +48,8 @@ class Popup {
     Popup.emitEvent('wmPopup:beforeInit');
     this.setSquarespaceLinks();
     document.body.addEventListener('click', (e) => {
-      let el = e.target.closest('[data-wm-popup], a[href*="#wm-popup"], a[href*="#wmpopup"]');
+      let selector = this.triggerSelector += ', [data-wm-popup]'
+      let el = e.target.closest(selector);
       if (el) {
         e.stopPropagation();
         e.preventDefault();
@@ -109,20 +110,35 @@ class Popup {
     if (popup.querySelector('video')) {
       popup.querySelectorAll('video').forEach(vid => vid.pause());
     }
-
-    let handleTransitionEnd = () => {
-      if (this.openPopup.singleBlock?.block) {
-        this.returnSingleBlock(this.openPopup)
-        this.openPopup.singleBlock = {}
-      }
-      popup.classList.remove('single-block-only')
-      popupWrapper.removeEventListener('transitionend', handleTransitionEnd);
-      this.openPopup.trigger.focus()
-      this.openPopup = null;
-    }
     this.resetNonNativeVideoBlocks();
-    popupWrapper.removeEventListener('transitionend', handleTransitionEnd); 
-    popupWrapper.addEventListener('transitionend', handleTransitionEnd);
+
+    // Flag to check if the transitionend event has occurred
+    let transitionEnded = false;
+    let handleTransitionEnd = () => {
+      if (!transitionEnded) {
+        // Handle the transition end logic here
+        if (this.openPopup.singleBlock?.block) {
+          this.returnSingleBlock(this.openPopup);
+          this.openPopup.singleBlock = {};
+        }
+        popup.classList.remove('single-block-only');
+        this.openPopup.trigger.focus();
+        this.openPopup = null;
+        transitionEnded = true;
+      }
+    };
+  
+    // Add a timeout to ensure the function is executed even if the transition duration is 0
+    let transitionTimeout = setTimeout(() => {
+      handleTransitionEnd();
+    }, 0);
+  
+    // Remove the timeout if the transitionend event occurs
+    popupWrapper.addEventListener('transitionend', () => {
+      clearTimeout(transitionTimeout);
+      handleTransitionEnd();
+    });
+    
     document.body.classList.remove('wm-popup-open')
     popup.classList.remove('open');
     this.unfreezeScroll();
