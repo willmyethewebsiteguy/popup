@@ -72,6 +72,9 @@
 }
 
 /*Open*/
+body.wm-popup-open {
+  width: 100%;
+}
 .wm-popup-container.open {
   z-index:9999;
   opacity: 1;
