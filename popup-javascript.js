@@ -246,7 +246,7 @@ class Popup {
     this.squarespace.links = document.querySelectorAll(this.triggerSelector);
     
     this.squarespace.links.forEach(el => {
-      let urlData = new URL(el.href);
+      let urlData = new URL(location.origin + el.getAttribute('href'));
       let hash = urlData.hash;
       let url = urlData.href.split('=')[1];
       let block;
@@ -270,13 +270,17 @@ class Popup {
       let script = document.querySelector('body > [src*="https://static1.squarespace.com/static/vta"]');
       this.scripts.push(script);
     }
+
+    document.querySelectorAll('script[data-popup-loaded]').forEach(el => {
+      this.scripts.push(el);
+    })
   
     const scriptPromises = this.scripts.map(async el => {
       if (hasLoaded.has(el.src) || (el.innerHTML && hasLoaded.has(el.innerHTML))) {
         return;
       }
       const script = document.createElement('script');
-      script.src = el.src;
+      script.src = el.src || el.dataset.popupScript;
       script.async = el.async;
   
       if (el.innerHTML) {
