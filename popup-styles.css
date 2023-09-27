@@ -83,7 +83,7 @@ body.wm-popup-open {
     visibilitiy 0s ease;
 }
 .wm-popup-container.open .wm-popup-background {
-  background: hsla(var(--overlay-hsl, 0, 0%, 0%), var(--background-opacity, 0.6));
+  background: hsla(var(--overlay-opacity, hsl, 0, 0%, 0%), var(--background-opacity, 0.6));
   backdrop-filter: blur(var(--blur, 0px)) opacity(1);
 }
 
