@@ -269,6 +269,7 @@ class Popup {
       /*Note: List Sections Won't Render if display:none;*/
       let script = document.querySelector('body > [src*="https://static1.squarespace.com/static/vta"]');
       this.scripts.push(script);
+      this.flexAnimationWorkAround();
     }
 
     document.querySelectorAll('script[data-popup-loaded]').forEach(el => {
@@ -295,7 +296,6 @@ class Popup {
         hasLoaded.add(el.src);
       }
     });
-    
     await Promise.all(scriptPromises);
   }
   initializeBlocks(el) {
@@ -392,6 +392,27 @@ class Popup {
     let nonNativeVideoBlock = this.openPopup.popup.querySelector('.sqs-block-video iframe')
     if (!nonNativeVideoBlock) return;
     this.initializeBlocks(this.openPopup.popup)
+  }
+  flexAnimationWorkAround() {
+    let elements = Array.from(document.querySelectorAll('.animation-segment-parent-hidden'));
+    let positions = elements.map(el => ({
+        element: el,
+        clone: el.cloneNode(true),
+        parent: el.parentNode,
+        sibling: el.previousElementSibling
+    }));
+    
+    positions.forEach(pos => {
+        pos.element.parentNode.removeChild(pos.element);
+        pos.clone.classList.remove('animation-segment-parent-hidden');
+        if (pos.sibling) {
+            // If there was a previous sibling, insert after it
+            pos.parent.insertBefore(pos.clone, pos.sibling.nextElementSibling);
+        } else {
+            // Otherwise, insert as the first child of the parent
+            pos.parent.insertBefore(pos.clone, pos.parent.firstElementChild);
+        }
+    });
   }
 }
 
