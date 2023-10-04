@@ -36,15 +36,21 @@ class Popup {
     this.beforeOpen = () => {
       
     };
-
     this.squarespace = {
       loadSiteBundle: true,
+      links: document.querySelectorAll(this.triggerSelector)
     };
+    this.hasGallerySection = false;
+    this.hasListSection = false;
+    this.hasVideo = false;
+    this.hasBkgVideo = false;
 
     this.init();
     this.ready;
   }
   async init() {
+    if (!this.squarespace.links) return;
+    //this.flexAnimationWorkAround();
     Popup.emitEvent('wmPopup:beforeInit');
     this.setSquarespaceLinks();
     document.body.addEventListener('click', (e) => {
@@ -221,7 +227,11 @@ class Popup {
           if (res.text){
             const doc = parser.parseFromString(res.text, 'text/html');
             const content = doc.querySelector('#sections'); 
-            this.popups[res.url].content = content.innerHTML
+            this.popups[res.url].content = content.innerHTML;
+            if (content.querySelector('.user-items-list')) this.hasListSection = true;
+            if (content.querySelector('.sqs-block-video')) this.hasVideo = true;
+            if (content.querySelector('.gallery-section')) this.hasGallerySection = true;
+            if (content.querySelector('.sqs-video-background-native, .section-background #player')) this.hasBkgVideo = true;
           } else {
             this.popups[res.url].content = `<section class="page-section error-section">
               <div class="section-border"></div>
@@ -243,8 +253,6 @@ class Popup {
     }
   }
   setSquarespaceLinks() {
-    this.squarespace.links = document.querySelectorAll(this.triggerSelector);
-    
     this.squarespace.links.forEach(el => {
       let urlData = new URL(location.origin + el.getAttribute('href'));
       let hash = urlData.hash;
@@ -267,9 +275,11 @@ class Popup {
   
     if (this.squarespace.loadSiteBundle) {
       /*Note: List Sections Won't Render if display:none;*/
-      let script = document.querySelector('body > [src*="https://static1.squarespace.com/static/vta"]');
-      this.scripts.push(script);
-      this.flexAnimationWorkAround();
+      if (this.hasGallerySection || this.hasListSection || this.hasVideo || this.hasBkgVideo) {
+        this.flexAnimationWorkAround();
+        let script = document.querySelector('body > [src*="https://static1.squarespace.com/static/vta"]');
+        this.scripts.push(script);
+      }
     }
 
     document.querySelectorAll('script[data-popup-loaded]').forEach(el => {
@@ -394,25 +404,43 @@ class Popup {
     this.initializeBlocks(this.openPopup.popup)
   }
   flexAnimationWorkAround() {
-    let elements = Array.from(document.querySelectorAll('.animation-segment-parent-hidden'));
-    let positions = elements.map(el => ({
-        element: el,
-        clone: el.cloneNode(true),
-        parent: el.parentNode,
-        sibling: el.previousElementSibling
-    }));
+
+    function resetFlex() {
+      let elements = Array.from(document.querySelectorAll('.animation-segment-parent-hidden'));
+      //elements = Array.from(document.querySelectorAll('.sqs-html-content h2'));
+      let positions = elements.map(el => ({
+          element: el,
+          clone: el.cloneNode(true),
+          parent: el.parentNode,
+          sibling: el.previousElementSibling
+      }));
+      positions.forEach(pos => {
+          pos.element.parentNode.removeChild(pos.element);
+          pos.clone.classList.remove('animation-segment-parent-hidden');
+          if (pos.sibling) {
+              // If there was a previous sibling, insert after it
+              pos.parent.insertBefore(pos.clone, pos.sibling.nextElementSibling);
+          } else {
+              // Otherwise, insert as the first child of the parent
+              pos.parent.insertBefore(pos.clone, pos.parent.firstElementChild);
+          }
+      });
+    }
+    if (document.readyState === 'loading') {
+        window.addEventListener('load', () => {
+          if (window.top === window.self) {
+            resetFlex();
+          } else {
+            window.Squarespace.onInitialize(Y, function(){
+              window.setTimeout(resetFlex, 200)
+            });
+          }
+        });
+    } else {
+        // Document is already loaded, directly call the function
+        resetFlex();
+    }
     
-    positions.forEach(pos => {
-        pos.element.parentNode.removeChild(pos.element);
-        pos.clone.classList.remove('animation-segment-parent-hidden');
-        if (pos.sibling) {
-            // If there was a previous sibling, insert after it
-            pos.parent.insertBefore(pos.clone, pos.sibling.nextElementSibling);
-        } else {
-            // Otherwise, insert as the first child of the parent
-            pos.parent.insertBefore(pos.clone, pos.parent.firstElementChild);
-        }
-    });
   }
 }
 
