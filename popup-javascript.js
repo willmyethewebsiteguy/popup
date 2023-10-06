@@ -168,7 +168,7 @@ class Popup {
         </div>`;
       return html;
     } 
-    let section = document.querySelector('#sections > .page-section:last-child .content-wrapper');
+    let section = document.querySelector('#sections > .page-section:last-of-type .content-wrapper');
     item.popup = document.createElement('div');
     item.popup.dataset.popupId = id;
     item.popup.classList.add('wm-popup-container');
