@@ -29,6 +29,7 @@
   top:0;
   place-items:center;
   backdrop-filter: blur(var(--blur, 0px)) opacity(0);
+  -webkit-backdrop-filter: blur(var(--blur, 0px)) opacity(0);
 }
 .wm-popup-wrapper {
   position:relative;
@@ -85,6 +86,7 @@ body.wm-popup-open {
 .wm-popup-container.open .wm-popup-background {
   background: hsla(var(--overlay-hsl, 0, 0%, 0%), var(--background-opacity, 0.6));
   backdrop-filter: blur(var(--blur, 0px)) opacity(1);
+  -webkit-backdrop-filter: blur(var(--blur, 0px)) opacity(1);
 }
 
 
@@ -96,7 +98,8 @@ body.wm-popup-open {
 }
 
 .wm-popup-container[data-animation="slideup"] .wm-popup-background{
-  transition-duration: var(--animation-duration, 0.3s); 
+  transition: -webkit-backdrop-filter var(--animation-duration,0.3s) ease,
+    backdrop-filter var(--animation-duration,0.3s) ease;
 }
 .wm-popup-container[data-animation="slideup"] .wm-popup-wrapper{
   transform: translateY(20px);
@@ -110,7 +113,8 @@ body.wm-popup-open {
 }
 
 .wm-popup-container[data-animation="slidedown"] .wm-popup-background{
-  transition-duration: var(--animation-duration, 0.3s); 
+  transition: -webkit-backdrop-filter var(--animation-duration,0.3s) ease,
+    backdrop-filter var(--animation-duration,0.3s) ease;  
 }
 .wm-popup-container[data-animation="slidedown"] .wm-popup-wrapper{
   transform: translateY(-20px);
@@ -124,7 +128,8 @@ body.wm-popup-open {
 }
 
 .wm-popup-container[data-animation="fade"] .wm-popup-background{
-  transition-duration: var(--animation-duration, 0.3s); 
+  transition: -webkit-backdrop-filter var(--animation-duration,0.3s) ease,
+    backdrop-filter var(--animation-duration,0.3s) ease;
 }
 .wm-popup-container[data-animation="fade"] .wm-popup-wrapper{
   opacity: 0;
