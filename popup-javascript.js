@@ -118,32 +118,39 @@ class Popup {
     }
     this.resetNonNativeVideoBlocks();
 
-    // Flag to check if the transitionend event has occurred
-    let transitionEnded = false;
     let handleTransitionEnd = () => {
-      if (!transitionEnded) {
-        // Handle the transition end logic here
-        if (this.openPopup.singleBlock?.block) {
-          this.returnSingleBlock(this.openPopup);
-          this.openPopup.singleBlock = {};
-        }
-        popup.classList.remove('single-block-only');
-        this.openPopup.trigger.focus();
-        this.openPopup = null;
-        transitionEnded = true;
+      if (this.openPopup.singleBlock?.block) {
+        this.returnSingleBlock(this.openPopup);
+        this.openPopup.singleBlock = {};
       }
+      popup.classList.remove('single-block-only');
+      this.openPopup.trigger.focus();
+      this.openPopup = null;
+      console.log('transitionend')
     };
-  
-    // Add a timeout to ensure the function is executed even if the transition duration is 0
-    let transitionTimeout = setTimeout(() => {
-      handleTransitionEnd();
-    }, 0);
-  
-    // Remove the timeout if the transitionend event occurs
-    popupWrapper.addEventListener('transitionend', () => {
-      clearTimeout(transitionTimeout);
-      handleTransitionEnd();
-    });
+    const afterTransition = (element, callback) => {
+      // Get computed styles for the element
+      const style = window.getComputedStyle(element);
+      const duration = parseFloat(style.transitionDuration);
+    
+      // Check if there's a transition duration
+      if (duration > 0) {
+          // If there's a transition, add the event listener
+          const listener = function(event) {
+              if (event.target === element) {
+                  callback();
+                  // Clean up: remove the event listener once it's called
+                  element.removeEventListener('transitionend', listener);
+              }
+          };
+      
+              element.addEventListener('transitionend', listener);
+          } else {
+              // If there's no transition, call the function directly
+              callback();
+          }
+      }
+    afterTransition(popupWrapper, handleTransitionEnd);
     
     document.body.classList.remove('wm-popup-open')
     popup.classList.remove('open');
