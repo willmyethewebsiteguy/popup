@@ -106,7 +106,7 @@ class Popup {
     this.setFocusOnFirstElement(popupEl)
     this.checkIfVideoAutoplay();
     window.dispatchEvent(new Event('resize'));
-    Popup.emitEvent('wmPopup:afterOpen', popup);
+    Popup.emitEvent('wmPopup:afterOpen', popup); 
   }
   close() {
     if (!this.openPopup) return;
@@ -126,7 +126,6 @@ class Popup {
       popup.classList.remove('single-block-only');
       this.openPopup.trigger.focus();
       this.openPopup = null;
-      console.log('transitionend')
     };
     const afterTransition = (element, callback) => {
       // Get computed styles for the element
