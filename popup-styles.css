@@ -190,7 +190,7 @@ body.wm-popup-open {
 
 
 /*Info Icon*/
-a[data-wm-popup]{
+a[data-wm-popup]:not(.gallery-grid-image-link, .sqs-block-image-link){
   position:relative;
 }
 .wm-info-icon{
