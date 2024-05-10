@@ -159,8 +159,13 @@ body.wm-popup-open {
 }
 
 /*Single Block Video Overrides*/
-.single-block-only .content-wrapper > .sqs-block .embed-block-wrapper {
+.single-block-only .content-wrapper > .sqs-block[data-block-json*="nativeVideo"] .embed-block-wrapper {
+  /*For Native Video Blocks*/
   padding-bottom: 0 !important;
+}
+.single-block-only .content-wrapper > .sqs-block .embed-block-wrapper {
+  /*For YT & Vimeo Blocks*/
+
 }
 
 /*Video Sections*/
