@@ -336,7 +336,7 @@ class Popup {
     }
     if (isVideo) {
       let video = block.querySelector('video');
-      video.muted = false;
+      if (video) video.muted = false;
     }
     popup.popup.querySelector('.page-section .content-wrapper').append(block);
     popup.popup.classList.add('single-block-only');
