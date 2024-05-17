@@ -23,6 +23,7 @@ class Popup {
   }
   
   constructor() {
+    const self = this;
     this.userSettings = window.wmPopupSettings || {};
     this.popups = {};
     this.popupTriggers = [];
@@ -38,7 +39,10 @@ class Popup {
     };
     this.squarespace = {
       loadSiteBundle: true,
-      links: document.querySelectorAll(this.triggerSelector)
+      /*links: document.querySelectorAll(this.triggerSelector),*/
+      get links() {
+        return document.querySelectorAll(self.triggerSelector);
+      }
     };
     this.hasGallerySection = false;
     this.hasListSection = false;
@@ -288,7 +292,7 @@ class Popup {
       }
     }
 
-    document.querySelectorAll('script[data-popup-loaded]').forEach(el => {
+    document.querySelectorAll('script[data-popup-loaded], .wm-popup-container script').forEach(el => {
       this.scripts.push(el);
     })
   
@@ -312,6 +316,7 @@ class Popup {
         hasLoaded.add(el.src);
       }
     });
+    
     await Promise.all(scriptPromises);
   }
   initializeBlocks(el) {
