@@ -297,7 +297,9 @@ class Popup {
     })
   
     const scriptPromises = this.scripts.map(async el => {
-      if (hasLoaded.has(el.src) || (el.innerHTML && hasLoaded.has(el.innerHTML))) {
+      if (hasLoaded.has(el.src) 
+          || (el.innerHTML && hasLoaded.has(el.innerHTML))
+          || el.type === 'application/json') {
         return;
       }
       const script = document.createElement('script');
