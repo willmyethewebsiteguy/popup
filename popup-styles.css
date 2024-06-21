@@ -147,6 +147,9 @@ body.wm-popup-open {
   padding: var(--single-block-padding, 0px);
   width: 100%;
 }
+.wm-popup-container.single-block-only:has(.content-wrapper > .sqs-block-video) .section-border {
+  display: none;
+}
 .wm-popup-container.single-block-only .content-wrapper > .content {
   display:none;
 }
