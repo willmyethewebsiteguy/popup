@@ -21,7 +21,7 @@ class Popup {
   	return elem.dispatchEvent(event);
   
   }
-  
+    
   constructor() {
     const self = this;
     this.userSettings = window.wmPopupSettings || {};
@@ -53,7 +53,7 @@ class Popup {
     this.ready;
   }
   async init() {
-    if (!this.squarespace.links) return;
+    if (!this.squarespace.links) return;    
     //this.flexAnimationWorkAround();
     Popup.emitEvent('wmPopup:beforeInit');
     this.setSquarespaceLinks();
@@ -272,7 +272,7 @@ class Popup {
         url = url.split('#')[0]
         block = hash.split('#')[2] || null;
       }
-      el.setAttribute('data-wm-popup', url);
+      el.setAttribute('data-wm-popup', url ? url : window.location.pathname);
       if (block) el.setAttribute('data-wm-popup-block', '#' + block);
     });
 
@@ -324,8 +324,27 @@ class Popup {
   initializeBlocks(el) {
     window.Squarespace?.initializeLayoutBlocks(Y, Y.one(el));
     window.Squarespace?.initializeNativeVideo(Y, Y.one(el));
-    window.Squarespace?.initializeCommerce(Y, Y.one(el))
+    this.initializeCommerce(el)
   }
+  initializeCommerce(el) {
+  // Re-initializing Commerce can be risky. 
+  // Remove all "add to cart buttons" first and replace them
+  // so you don't double add products
+  const shouldInitialize = !!el.querySelectorAll(
+    '.sqs-add-to-cart-button',
+  ).length;
+  const allAddToCartButtons = document.querySelectorAll('.sqs-add-to-cart-button');
+  
+  if (shouldInitialize) {
+    // For each button, replace it with a clone to remove event listeners
+    allAddToCartButtons.forEach(button => {
+      const clone = button.cloneNode(true);
+      button.parentNode.replaceChild(clone, button);
+    });
+    // Reinitialize Squarespace Commerce
+    Y.Squarespace.Commerce.initializeCommerce();
+  }
+}
   rearrangePopups(){
     let siteWrapper = document.querySelector('#siteWrapper');
     for (let id in this.popups) {
