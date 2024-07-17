@@ -3,7 +3,6 @@
   A simple Popup Plugin for Squarespace
   This Code is Licensed by Will-Myers.com
 ========== */
-
 class Popup {
   static emitEvent (type, detail = {}, elem = document) {
   
@@ -53,8 +52,10 @@ class Popup {
     this.ready;
   }
   async init() {
-    if (!this.squarespace.links) return;    
+    if (!this.squarespace.links) return;
+    
     //this.flexAnimationWorkAround();
+    
     Popup.emitEvent('wmPopup:beforeInit');
     this.setSquarespaceLinks();
     document.body.addEventListener('click', (e) => {
@@ -120,9 +121,14 @@ class Popup {
     if (popup.querySelector('video')) {
       popup.querySelectorAll('video').forEach(vid => vid.pause());
     }
+    if (popup.querySelector('.sqs-block-video iframe[src*="autoplay=1"]')) {
+      const iframe = popup.querySelector('.sqs-block-video iframe[src*="autoplay=1"]');
+      iframe.src = iframe.src.replace('autoplay=1', '');
+    }
     this.resetNonNativeVideoBlocks();
 
     let handleTransitionEnd = () => {
+      if (!this.openPopup) return;
       if (this.openPopup.singleBlock?.block) {
         this.returnSingleBlock(this.openPopup);
         this.openPopup.singleBlock = {};
@@ -324,6 +330,7 @@ class Popup {
   initializeBlocks(el) {
     window.Squarespace?.initializeLayoutBlocks(Y, Y.one(el));
     window.Squarespace?.initializeNativeVideo(Y, Y.one(el));
+    //window.Squarespace?.initializeCommerce(Y, Y.one(el))
     this.initializeCommerce(el)
   }
   initializeCommerce(el) {
@@ -355,6 +362,7 @@ class Popup {
   placeSingleBlock(popup, singleBlock) {
     let block = popup.popup.querySelector(singleBlock);
     let isVideo = block.matches('.sqs-block-video');
+    const isImageBlock = block.matches('.sqs-block-image');
     popup.singleBlock = {
       block: block,
       originalParent:  block.parentElement,
