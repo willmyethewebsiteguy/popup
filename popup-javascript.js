@@ -330,6 +330,8 @@ class Popup {
   initializeBlocks(el) {
     window.Squarespace?.initializeLayoutBlocks(Y, Y.one(el));
     window.Squarespace?.initializeNativeVideo(Y, Y.one(el));
+    window.Squarespace.initializeWebsiteComponent(Y, Y.one(el))
+
     //window.Squarespace?.initializeCommerce(Y, Y.one(el))
     this.initializeCommerce(el)
   }
