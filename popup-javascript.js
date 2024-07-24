@@ -336,24 +336,40 @@ class Popup {
     this.initializeCommerce(el)
   }
   initializeCommerce(el) {
-  // Re-initializing Commerce can be risky. 
-  // Remove all "add to cart buttons" first and replace them
-  // so you don't double add products
-  const shouldInitialize = !!el.querySelectorAll(
-    '.sqs-add-to-cart-button',
-  ).length;
-  const allAddToCartButtons = document.querySelectorAll('.sqs-add-to-cart-button');
+    const addToCartButtons = el.querySelectorAll('.sqs-add-to-cart-button');
+    const shouldInitialize = addToCartButtons.length > 0;
+    
+    if (!shouldInitialize) return;
   
-  if (shouldInitialize) {
-    // For each button, replace it with a clone to remove event listeners
-    allAddToCartButtons.forEach(button => {
+    const afterpayComponents = document.querySelectorAll('[data-afterpay="true"]');
+    const context = window.Static?.SQUARESPACE_CONTEXT;
+    const nativeProductReviewsEnabled = context?.websiteSettings?.storeSettings?.merchandisingSettings?.displayNativeProductReviewsEnabled;
+  
+    // Remove event listeners from "add to cart" buttons
+    addToCartButtons.forEach(button => {
       const clone = button.cloneNode(true);
       button.parentNode.replaceChild(clone, button);
     });
+  
+    // Temporarily disable Afterpay and native product reviews
+    afterpayComponents.forEach(el => el.removeAttribute('data-afterpay'));
+    if (context?.websiteSettings?.storeSettings?.merchandisingSettings) {
+      context.websiteSettings.storeSettings.merchandisingSettings.displayNativeProductReviewsEnabled = false;
+    }
+  
     // Reinitialize Squarespace Commerce
-    Y.Squarespace.Commerce.initializeCommerce();
+    if (typeof Y !== 'undefined' && Y.Squarespace && Y.Squarespace.Commerce) {
+      Y.Squarespace.Commerce.initializeCommerce();
+    } else {
+      console.warn('Squarespace Commerce object not found. Commerce initialization skipped.');
+    }
+  
+    // Restore Afterpay and native product reviews settings
+    afterpayComponents.forEach(el => el.setAttribute('data-afterpay', 'true'));
+    if (context?.websiteSettings?.storeSettings?.merchandisingSettings) {
+      context.websiteSettings.storeSettings.merchandisingSettings.displayNativeProductReviewsEnabled = nativeProductReviewsEnabled;
+    }
   }
-}
   rearrangePopups(){
     let siteWrapper = document.querySelector('#siteWrapper');
     for (let id in this.popups) {
