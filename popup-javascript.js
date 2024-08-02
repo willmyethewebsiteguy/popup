@@ -211,59 +211,84 @@ class Popup {
         popup: null
       };
     }
-
     /*Get Data*/
     const urls = []
     for (const id in this.popups) {
       const url = this.popups[id].url;
       if (url) urls.push(url);
     }
-    const fetchPromises = urls.map(url => fetch(url));
-    
-    await Promise.all(fetchPromises)
-      .then(async responses => {
-        const textPromises = responses.map(async response => {
-          if (response.ok) {
-            const text = await response.text(); 
-            return {
-              url: new URL(response.url).pathname,
-              text: text
-            };
+    const fetchPromises = urls.map(url => {
+      return fetch(url)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
           }
+          return response;
+        })
+        .catch(error => {
+          console.error(`Failed to fetch ${url}:`, error);
+          return null; // Return null for failed requests
+        });
+    });
+    
+    try {
+      const responses = await Promise.all(fetchPromises);
+      const textPromises = responses.map(async (response, index) => {
+        if (response === null) {
+          console.log(`Skipping processing for failed request: ${urls[index]}`);
+          return {
+            url: urls[index],
+            text: false
+          };
+        }
+        try {
+          const text = await response.text();
+          return {
+            url: new URL(response.url).pathname,
+            text: text
+          };
+        } catch (error) {
+          console.error(`Error processing response for ${response.url}:`, error);
           return {
             url: new URL(response.url).pathname,
             text: false
           };
-        });
-    
-        const textResponses = await Promise.all(textPromises);
-
-        textResponses.forEach(res => {
-          const parser = new DOMParser();
-          if (res.text){
-            const doc = parser.parseFromString(res.text, 'text/html');
-            const content = doc.querySelector('#sections'); 
+        }
+      });
+  
+      const textResponses = await Promise.all(textPromises);
+      textResponses.forEach(res => {
+        if (!res) {
+          console.log('Skipping null response');
+          return;
+        }
+        const parser = new DOMParser();
+        if (res.text){
+          const doc = parser.parseFromString(res.text, 'text/html');
+          const content = doc.querySelector('#sections');
+          if (content) {
             this.popups[res.url].content = content.innerHTML;
             if (content.querySelector('.user-items-list')) this.hasListSection = true;
             if (content.querySelector('.sqs-block-video')) this.hasVideo = true;
             if (content.querySelector('.gallery-section')) this.hasGallerySection = true;
             if (content.querySelector('.sqs-video-background-native, .section-background #player')) this.hasBkgVideo = true;
           } else {
-            this.popups[res.url].content = `<section class="page-section error-section">
-              <div class="section-border"></div>
-              <div class="content-wrapper">
-                <p>The URL, <code>${res.url}</code>, does not exist on your website.</p>
-              </div>
-            </section>`;
+            console.warn(`No #sections found in the response for ${res.url}`);
+            this.popups[res.url].content = `<section class="page-section error-section"><div class="content-wrapper"><p>No content found for ${res.url}</p></div></section>`;
           }
-
-        })
-
+        } else {
+          this.popups[res.url].content = `<section class="page-section error-section">
+            <div class="section-border"></div>
+            <div class="content-wrapper">
+              <p>The URL, <code>${res.url}</code>, does not exist on your website.</p>
+            </div>
+          </section>`;
+        }
       })
-      .catch(error => {
-        console.error('An error occurred:', error);
-      });
-    
+    } catch (error) {
+      console.error('An error occurred during fetch operations:', error);
+    }
+  
     for (let id in this.popups) {
       this.buildPopup(id)
     }
@@ -330,7 +355,7 @@ class Popup {
   initializeBlocks(el) {
     window.Squarespace?.initializeLayoutBlocks(Y, Y.one(el));
     window.Squarespace?.initializeNativeVideo(Y, Y.one(el));
-    window.Squarespace.initializeWebsiteComponent(Y, Y.one(el))
+    window.Squarespace?.initializeWebsiteComponent(Y, Y.one(el))
 
     //window.Squarespace?.initializeCommerce(Y, Y.one(el))
     this.initializeCommerce(el)
