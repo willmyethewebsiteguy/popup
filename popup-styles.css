@@ -3,7 +3,6 @@
   A Simple Popup Plugin for Squarespace
   This Code is Licensed by Will-Myers.com
 ========== */
-
 .wm-popup-container {
   position: fixed;
   display: grid;
@@ -168,7 +167,9 @@ body.wm-popup-open {
 }
 .single-block-only .content-wrapper > .sqs-block .embed-block-wrapper {
   /*For YT & Vimeo Blocks*/
-
+}
+.single-block-only .video-player .video-player__icons{
+  top:0;
 }
 
 /*Video Sections*/
